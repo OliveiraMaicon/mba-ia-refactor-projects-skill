@@ -1,27 +1,24 @@
+from config.settings import EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD
 import smtplib
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 class NotificationService:
     def __init__(self):
         self.notifications = []
-        self.email_host = 'smtp.gmail.com'
-        self.email_port = 587
-        self.email_user = 'taskmanager@gmail.com'
-        self.email_password = 'senha123'
 
     def send_email(self, to, subject, body):
+        if not EMAIL_PASSWORD:
+            return False
         try:
-
-            server = smtplib.SMTP(self.email_host, self.email_port)
+            server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
             server.starttls()
-            server.login(self.email_user, self.email_password)
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
             message = f"Subject: {subject}\n\n{body}"
-            server.sendmail(self.email_user, to, message)
+            server.sendmail(EMAIL_USER, to, message)
             server.quit()
-            print(f"Email enviado para {to}")
             return True
-        except Exception as e:
-            print(f"Erro ao enviar email: {str(e)}")
+        except Exception:
             return False
 
     def notify_task_assigned(self, user, task):
@@ -32,7 +29,7 @@ class NotificationService:
             'type': 'task_assigned',
             'user_id': user.id,
             'task_id': task.id,
-            'timestamp': datetime.utcnow()
+            'timestamp': datetime.now(timezone.utc)
         })
 
     def notify_task_overdue(self, user, task):
@@ -41,8 +38,4 @@ class NotificationService:
         self.send_email(user.email, subject, body)
 
     def get_notifications(self, user_id):
-        result = []
-        for n in self.notifications:
-            if n['user_id'] == user_id:
-                result.append(n)
-        return result
+        return [n for n in self.notifications if n['user_id'] == user_id]
